@@ -1,0 +1,54 @@
+{
+  "entities": {
+    "Sprint": {
+      "title": "Sprint",
+      "description": "A 10-day sprint data",
+      "type": "object",
+      "properties": {
+        "id": { "type": "number" },
+        "microGoals": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "text": { "type": "string" },
+              "category": { "type": "string" },
+              "days": { "type": "array", "items": { "type": "boolean" } }
+            }
+          }
+        },
+        "days": { "type": "array", "items": { "type": "boolean" } },
+        "reflection": { "type": "string" },
+        "currentDay": { "type": "number" },
+        "lastUpdated": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "microGoals", "days", "reflection", "currentDay", "lastUpdated"]
+    },
+    "DailyLog": {
+      "title": "DailyLog",
+      "description": "A daily journal log",
+      "type": "object",
+      "properties": {
+        "date": { "type": "string" },
+        "encouragement": { "type": "string" },
+        "tasks": { "type": "array", "items": { "type": "string" } },
+        "taskStatus": { "type": "array", "items": { "type": "boolean" } },
+        "achievements": { "type": "array", "items": { "type": "string" } },
+        "gratitude": { "type": "array", "items": { "type": "string" } },
+        "reflection": { "type": "array", "items": { "type": "string" } },
+        "mood": { "type": "string" }
+      },
+      "required": ["date", "encouragement", "tasks", "taskStatus", "achievements", "gratitude", "reflection", "mood"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}/sprints/{sprintId}": {
+      "schema": "Sprint",
+      "description": "Sprint data for a user"
+    },
+    "/users/{userId}/sprints/{sprintId}/dailyLogs/{date}": {
+      "schema": "DailyLog",
+      "description": "Daily log for a specific date in a sprint"
+    }
+  }
+}

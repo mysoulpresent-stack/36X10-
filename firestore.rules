@@ -1,0 +1,100 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Document ID: userId
+    // Fields:
+    //   - initialized: boolean (required)
+    //
+    // Collection: users/{userId}/sprints
+    // Document ID: sprintId (1-36)
+    // Fields:
+    //   - id: number (required)
+    //   - microGoals: list of objects (required)
+    //   - days: list of booleans (required)
+    //   - reflection: string (required)
+    //   - currentDay: number (required)
+    //   - lastUpdated: timestamp/string (required)
+    //
+    // Collection: users/{userId}/sprints/{sprintId}/dailyLogs
+    // Document ID: date (YYYY-MM-DD)
+    // Fields:
+    //   - date: string (required)
+    //   - encouragement: string (required)
+    //   - tasks: list of strings (required)
+    //   - taskStatus: list of booleans (required)
+    //   - achievements: list of strings (required)
+    //   - gratitude: list of strings (required)
+    //   - reflection: list of strings (required)
+    //   - mood: string (required)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          (request.auth.token.email == "mysoulpresent@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function isValidSprint(data) {
+      return data.id is number &&
+             data.microGoals is list &&
+             data.days is list &&
+             data.reflection is string &&
+             data.currentDay is number &&
+             data.lastUpdated is string;
+    }
+
+    function isValidDailyLog(data) {
+      return data.date is string &&
+             data.encouragement is string &&
+             data.tasks is list &&
+             data.taskStatus is list &&
+             data.achievements is list &&
+             data.gratitude is list &&
+             data.reflection is list &&
+             data.mood is string &&
+             data.encouragement.size() < 1000;
+    }
+
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create, update: if isOwner(userId) || isAdmin();
+
+      match /sprints/{sprintId} {
+        allow read: if isOwner(userId) || isAdmin();
+        allow create, update: if (isOwner(userId) && isValidSprint(request.resource.data)) || isAdmin();
+
+        match /dailyLogs/{date} {
+          allow read: if isOwner(userId) || isAdmin();
+          allow create, update: if (isOwner(userId) && isValidDailyLog(request.resource.data)) || isAdmin();
+        }
+      }
+    }
+  }
+}
