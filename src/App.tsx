@@ -40,7 +40,8 @@ import {
   Coffee,
   PenTool,
   TrendingUp,
-  Target
+  Target,
+  Info
 } from 'lucide-react';
 import { auth, db, loginWithGoogle, logout, handleFirestoreError, OperationType } from './firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
@@ -301,8 +302,7 @@ function AppContent() {
   });
   const [isDarkMode, setIsDarkMode] = useState(() => {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('theme') === 'dark' ||
-        (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches);
+      return localStorage.getItem('theme') === 'dark';
     }
     return false;
   });
@@ -956,9 +956,9 @@ function YearOverview({
       exit={{ opacity: 0, y: -20 }}
       className="space-y-4"
     >
-      <header className="space-y-4 border-b border-slate-100 dark:border-slate-800 pb-8">
+      <header className="glass-card p-6 bg-gradient-to-br from-white to-brand-green/30 dark:from-slate-800 dark:to-slate-900/50 border border-slate-100 dark:border-slate-700">
         <div className="space-y-2">
-          <h1 className="text-6xl md:text-8xl font-black tracking-tighter text-brand-green-deep leading-none">
+          <h1 className="text-6xl md:text-8xl font-black tracking-tighter text-brand-green-deep dark:text-brand-green-dark leading-none">
             {currentYear}
           </h1>
           <h2 className="text-xl md:text-2xl font-bold tracking-tight text-slate-800 dark:text-slate-200 leading-tight">
@@ -968,16 +968,16 @@ function YearOverview({
       </header>
 
       {/* Manifesto Section */}
-      <div className="overflow-hidden bg-white/50 dark:bg-slate-800/50 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-sm">
-        {/* Dark Header */}
-        <div className="bg-brand-green-deep p-6 text-white flex items-center justify-between">
-          <div className="flex items-center gap-2">
+      <div className="glass-card p-6 bg-gradient-to-br from-white to-brand-green/30 dark:from-slate-800 dark:to-slate-900/50 relative overflow-hidden rounded-3xl border border-slate-100 dark:border-slate-700 shadow-sm">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2 text-brand-green-deep dark:text-brand-green-light">
             <h3 className="text-lg font-black tracking-tight">{currentYear} 年度个人宣言</h3>
             <button 
               onClick={() => setShowRules(!showRules)}
-              className="p-1 text-brand-green-light hover:text-white transition-colors"
+              className="p-1 text-brand-green-deep/60 dark:text-brand-green-light/60 hover:text-brand-green-deep dark:hover:text-white transition-colors"
             >
-              <AlertCircle size={16} />
+              <Info size={16} />
             </button>
           </div>
         </div>
@@ -1174,10 +1174,10 @@ function YearOverview({
         </motion.div>
       )}
 
-      <div className="space-y-4">
+      <div className="glass-card p-6 space-y-4 bg-gradient-to-br from-white to-brand-green/30 dark:from-slate-800 dark:to-slate-900/50 border border-slate-100 dark:border-slate-700">
         <div className="flex items-center justify-between px-1">
-          <h3 className="text-lg font-black text-brand-green-deep tracking-tight">
-            你现在正处于 <span className="text-brand-green-dark text-xl">{currentSprintId}</span> / 36
+          <h3 className="text-lg font-black text-brand-green-deep dark:text-brand-green-light tracking-tight">
+            你现在正处于 <span className="text-brand-green-dark dark:text-brand-green text-xl">{currentSprintId}</span> / 36
           </h3>
         </div>
 
