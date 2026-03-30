@@ -48,8 +48,7 @@ service cloud.firestore {
 
     function isAdmin() {
       return isAuthenticated() &&
-        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
-          (request.auth.token.email == "mysoulpresent@gmail.com" && request.auth.token.email_verified == true));
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
     function hasOnlyAllowedFields(fields) {
@@ -62,7 +61,7 @@ service cloud.firestore {
              data.days is list &&
              data.reflection is string &&
              data.currentDay is number &&
-             data.lastUpdated is string;
+             (data.lastUpdated is string || data.lastUpdated is timestamp);
     }
 
     function isValidDailyLog(data) {
@@ -85,14 +84,17 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if isOwner(userId) || isAdmin();
       allow create, update: if isOwner(userId) || isAdmin();
+      allow delete: if isOwner(userId) || isAdmin();
 
       match /sprints/{sprintId} {
         allow read: if isOwner(userId) || isAdmin();
         allow create, update: if (isOwner(userId) && isValidSprint(request.resource.data)) || isAdmin();
+        allow delete: if isOwner(userId) || isAdmin();
 
         match /dailyLogs/{date} {
           allow read: if isOwner(userId) || isAdmin();
           allow create, update: if (isOwner(userId) && isValidDailyLog(request.resource.data)) || isAdmin();
+          allow delete: if isOwner(userId) || isAdmin();
         }
       }
     }

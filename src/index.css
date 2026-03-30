@@ -12,13 +12,16 @@
 
 @layer base {
   body {
-    @apply bg-brand-beige text-slate-800 font-sans antialiased;
+    @apply bg-brand-beige text-slate-800 font-sans antialiased transition-colors duration-300;
+  }
+  .dark body {
+    @apply bg-slate-950 text-slate-200;
   }
 }
 
 @layer components {
   .glass-card {
-    @apply bg-white/80 backdrop-blur-sm border border-slate-100 shadow-sm rounded-2xl;
+    @apply bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border border-slate-100 dark:border-slate-800 shadow-sm rounded-2xl transition-colors duration-300;
   }
   
   .sprint-grid-item {
