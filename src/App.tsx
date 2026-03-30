@@ -92,6 +92,8 @@ const MONTH_NAMES = [
   "七月", "八月", "九月", "十月", "十一月", "十二月"
 ];
 
+const DAYS_IN_MONTH = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+
 const ENERGY_QUOTES = [
   "你的能量是你的货币。请明智地使用它。",
   "专注于进步，而非完美。",
@@ -190,7 +192,6 @@ const GOAL_TEMPLATES: Record<string, { icon: any, color: string, subs: Record<st
 const CATEGORIES = Object.keys(GOAL_TEMPLATES);
 
 const getSprintInfo = (sprintId: number) => {
-  const currentYear = new Date().getFullYear();
   const monthIndex = Math.floor((sprintId - 1) / 3);
   const sprintInMonth = ((sprintId - 1) % 3) + 1;
   const monthName = MONTH_NAMES[monthIndex];
@@ -209,8 +210,7 @@ const getSprintInfo = (sprintId: number) => {
     totalDays = 10;
   } else {
     startDay = 21;
-    // Calculate days in month dynamically for the current year to handle leap years
-    endDay = new Date(currentYear, monthIndex + 1, 0).getDate();
+    endDay = DAYS_IN_MONTH[monthIndex];
     totalDays = endDay - 21 + 1;
   }
 
@@ -1370,7 +1370,7 @@ function SprintView({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-brand-green-dark">
               <Sparkles size={18} fill="currentColor" />
-              <span className="text-xs font-bold uppercase tracking-wider">{new Date().getFullYear()} 年度个人宣言</span>
+              <span className="text-xs font-bold uppercase tracking-wider">2026 年度个人宣言</span>
             </div>
             {nonEmptyManifesto.length > 1 && (
               <div className="flex gap-1">
