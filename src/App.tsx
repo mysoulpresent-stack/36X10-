@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useMemo, ErrorInfo, ReactNode } from 'react';
+import React, { useState, useEffect, useMemo, useRef, ErrorInfo, ReactNode } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   ChevronLeft, 
@@ -328,7 +328,24 @@ function AppContent() {
 
   // Auth listener
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (u) => {
+    const unsubscribe = onAuthStateChanged(auth, async (u) => {
+      if (u) {
+        const lastLogin = localStorage.getItem('lastLoginTime');
+        const now = Date.now();
+        if (lastLogin && (now - parseInt(lastLogin) > 24 * 60 * 60 * 1000)) {
+          // Expiry reached
+          await logout();
+          setUser(null);
+          setIsAuthReady(true);
+          setIsLoading(false);
+          return;
+        }
+        if (!lastLogin) {
+          localStorage.setItem('lastLoginTime', now.toString());
+        }
+      } else {
+        localStorage.removeItem('lastLoginTime');
+      }
       setUser(u);
       setIsAuthReady(true);
       if (!u) {
@@ -1404,7 +1421,7 @@ function SprintView({
       </div>
 
       {/* Main Content */}
-      <div className="glass-card p-6 space-y-8">
+      <div className="glass-card p-6 space-y-8 bg-gradient-to-br from-white to-brand-green/30 dark:from-slate-800 dark:to-slate-900/50 border border-slate-100 dark:border-slate-700 shadow-sm">
         <div className="text-center py-2">
           <p className="text-lg md:text-xl font-black text-brand-green-deep tracking-tight">
             {new Date().getFullYear()}年{new Date().getMonth() + 1}月{new Date().getDate()}日 • 我的微计划打卡
@@ -1661,8 +1678,8 @@ function SprintView({
         {/* Stage Reflection */}
         <div className="space-y-3">
           <div className="flex items-center justify-between ml-1">
-            <label className="text-sm md:text-base font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">阶段复盘</label>
-            <span className="text-xs md:text-sm text-slate-400 dark:text-slate-500">记录本周期的感悟与成长</span>
+            <label className="text-sm md:text-base font-bold uppercase tracking-wider" style={{ color: '#000000' }}>阶段复盘</label>
+            <span className="text-xs md:text-sm" style={{ color: '#000000' }}>记录本周期的感悟与成长</span>
           </div>
           <textarea
             value={sprint.reflection}
@@ -1746,6 +1763,60 @@ function SprintView({
 }
 
 // --- Journal View Component ---
+
+interface AutoGrowingTextareaProps {
+  value: string;
+  onChange: (value: string) => void;
+  className?: string;
+  placeholder?: string;
+}
+
+function AutoGrowingTextarea({ value, onChange, className, placeholder }: AutoGrowingTextareaProps) {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
+    }
+  }, [value]);
+
+  return (
+    <textarea
+      ref={textareaRef}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className={className}
+      placeholder={placeholder}
+      rows={1}
+      style={{ minHeight: '40px' }}
+    />
+  );
+}
+
+interface ReflectionItemProps {
+  key?: React.Key;
+  item: string;
+  i: number;
+  updateArrayField: (field: 'tasks' | 'achievements' | 'gratitude' | 'reflection', index: number, value: string) => void;
+  removeArrayItem: (field: 'tasks' | 'achievements' | 'gratitude' | 'reflection', index: number) => void;
+}
+
+function ReflectionItem({ item, i, updateArrayField, removeArrayItem }: ReflectionItemProps) {
+  return (
+    <div className="flex items-start gap-2">
+      <span className="text-sm md:text-base font-bold text-brand-green-deep dark:text-brand-green-light w-4 pt-2">{i + 1}。</span>
+      <AutoGrowingTextarea
+        value={item || ''}
+        onChange={(value) => updateArrayField('reflection', i, value)}
+        className="flex-1 bg-white dark:bg-slate-800 border border-slate-50 dark:border-slate-700 p-2 rounded-lg text-sm md:text-base font-medium text-slate-600 dark:text-slate-300 focus:border-brand-green-dark outline-none transition-colors resize-none overflow-hidden"
+      />
+      <button onClick={() => removeArrayItem('reflection', i)} className="text-slate-300 dark:text-slate-500 hover:text-red-400 transition-colors p-1 pt-2">
+        <X size={16} />
+      </button>
+    </div>
+  );
+}
 
 function JournalView({
   sprintId,
@@ -1841,7 +1912,7 @@ function JournalView({
         </div>
       </nav>
 
-      <div className="glass-card p-6 space-y-8">
+      <div className="glass-card p-6 space-y-8 bg-gradient-to-br from-white to-brand-green/30 dark:from-slate-800 dark:to-slate-900/50 border border-slate-100 dark:border-slate-700 shadow-sm">
         <div className="text-center py-2">
           <p className="text-lg md:text-xl font-black text-brand-green-deep tracking-tight">
             {new Date().getFullYear()}年{new Date().getMonth() + 1}月{new Date().getDate()}日 • 我的日记
@@ -1859,12 +1930,11 @@ function JournalView({
             <span className="text-lg">💖</span>
             <label className="text-sm md:text-base font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">鼓励自己的话</label>
           </div>
-          <input 
-            type="text"
+          <AutoGrowingTextarea 
             value={log.encouragement}
-            onChange={(e) => updateField('encouragement', e.target.value)}
+            onChange={(value) => updateField('encouragement', value)}
             placeholder="写下一句给自己的话..."
-            className="w-full p-4 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl shadow-sm focus:ring-2 focus:ring-brand-green-light focus:border-brand-green-dark outline-none text-sm md:text-base font-medium text-slate-700 dark:text-slate-200 placeholder:text-slate-300 dark:placeholder:text-slate-500"
+            className="w-full p-4 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl shadow-sm focus:ring-2 focus:ring-brand-green-light focus:border-brand-green-dark outline-none text-sm md:text-base font-medium text-slate-700 dark:text-slate-200 placeholder:text-slate-300 dark:placeholder:text-slate-500 resize-none overflow-hidden"
           />
         </motion.div>
 
@@ -1890,11 +1960,10 @@ function JournalView({
                   >
                     {log.taskStatus?.[i] ? <CheckCircle2 size={18} /> : <Circle size={18} />}
                   </button>
-                  <input 
-                    type="text"
+                  <AutoGrowingTextarea 
                     value={task || ''}
-                    onChange={(e) => updateArrayField('tasks', i, e.target.value)}
-                    className={`flex-1 bg-white dark:bg-slate-800 border border-slate-50 dark:border-slate-700 p-2 rounded-lg text-sm md:text-base font-medium focus:border-brand-green-dark outline-none transition-all ${
+                    onChange={(value) => updateArrayField('tasks', i, value)}
+                    className={`flex-1 bg-white dark:bg-slate-800 border border-slate-50 dark:border-slate-700 p-2 rounded-lg text-sm md:text-base font-medium focus:border-brand-green-dark outline-none transition-all resize-none overflow-hidden ${
                       log.taskStatus?.[i] ? 'text-slate-300 dark:text-slate-500 line-through' : 'text-slate-600 dark:text-slate-300'
                     }`}
                     placeholder={`任务 ${i + 1}...`}
@@ -1924,12 +1993,11 @@ function JournalView({
             <div className="space-y-2">
               {log.achievements.map((achievement, i) => (
                 <div key={i} className="flex items-center gap-2">
-                  <span className="text-sm md:text-base font-bold text-slate-300 dark:text-slate-500 w-4">{i + 1}。</span>
-                  <input 
-                    type="text"
+                  <span className="text-sm md:text-base font-bold text-brand-green-deep dark:text-brand-green-light w-4">{i + 1}。</span>
+                  <AutoGrowingTextarea 
                     value={achievement || ''}
-                    onChange={(e) => updateArrayField('achievements', i, e.target.value)}
-                    className="flex-1 bg-white dark:bg-slate-800 border border-slate-50 dark:border-slate-700 p-2 rounded-lg text-sm md:text-base font-medium text-slate-600 dark:text-slate-300 focus:border-brand-green-dark outline-none transition-colors"
+                    onChange={(value) => updateArrayField('achievements', i, value)}
+                    className="flex-1 bg-white dark:bg-slate-800 border border-slate-50 dark:border-slate-700 p-2 rounded-lg text-sm md:text-base font-medium text-slate-600 dark:text-slate-300 focus:border-brand-green-dark outline-none transition-colors resize-none overflow-hidden"
                   />
                   <button onClick={() => removeArrayItem('achievements', i)} className="text-slate-300 dark:text-slate-500 hover:text-red-400 transition-colors p-1">
                     <X size={16} />
@@ -1956,12 +2024,11 @@ function JournalView({
             <div className="space-y-2">
               {log.gratitude.map((item, i) => (
                 <div key={i} className="flex items-center gap-2">
-                  <span className="text-sm md:text-base font-bold text-slate-300 dark:text-slate-500 w-4">{i + 1}。</span>
-                  <input 
-                    type="text"
+                  <span className="text-sm md:text-base font-bold text-brand-green-deep dark:text-brand-green-light w-4">{i + 1}。</span>
+                  <AutoGrowingTextarea 
                     value={item || ''}
-                    onChange={(e) => updateArrayField('gratitude', i, e.target.value)}
-                    className="flex-1 bg-white dark:bg-slate-800 border border-slate-50 dark:border-slate-700 p-2 rounded-lg text-sm md:text-base font-medium text-slate-600 dark:text-slate-300 focus:border-brand-green-dark outline-none transition-colors"
+                    onChange={(value) => updateArrayField('gratitude', i, value)}
+                    className="flex-1 bg-white dark:bg-slate-800 border border-slate-50 dark:border-slate-700 p-2 rounded-lg text-sm md:text-base font-medium text-slate-600 dark:text-slate-300 focus:border-brand-green-dark outline-none transition-colors resize-none overflow-hidden"
                   />
                   <button onClick={() => removeArrayItem('gratitude', i)} className="text-slate-300 dark:text-slate-500 hover:text-red-400 transition-colors p-1">
                     <X size={16} />
@@ -1987,18 +2054,13 @@ function JournalView({
             </div>
             <div className="space-y-2">
               {log.reflection.map((item, i) => (
-                <div key={i} className="flex items-center gap-2">
-                  <span className="text-sm md:text-base font-bold text-slate-300 dark:text-slate-500 w-4">{i + 1}。</span>
-                  <input 
-                    type="text"
-                    value={item || ''}
-                    onChange={(e) => updateArrayField('reflection', i, e.target.value)}
-                    className="flex-1 bg-white dark:bg-slate-800 border border-slate-50 dark:border-slate-700 p-2 rounded-lg text-sm md:text-base font-medium text-slate-600 dark:text-slate-300 focus:border-brand-green-dark outline-none transition-colors"
-                  />
-                  <button onClick={() => removeArrayItem('reflection', i)} className="text-slate-300 dark:text-slate-500 hover:text-red-400 transition-colors p-1">
-                    <X size={16} />
-                  </button>
-                </div>
+                <ReflectionItem 
+                  key={i} 
+                  item={item} 
+                  i={i} 
+                  updateArrayField={updateArrayField} 
+                  removeArrayItem={removeArrayItem} 
+                />
               ))}
               <button onClick={() => addArrayItem('reflection')} className="flex items-center gap-1 text-sm font-bold text-brand-green-dark hover:text-brand-green-deep transition-colors mt-2 ml-6">
                 <Plus size={16} /> 添加反思
